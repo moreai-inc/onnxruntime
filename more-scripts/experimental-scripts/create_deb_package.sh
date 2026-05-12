@@ -56,6 +56,11 @@ cat /tmp/deb-pkg/DEBIAN/control
 mkdir -p /output
 dpkg-deb --build /tmp/deb-pkg /output/onnxruntime-linux-x64-cuda12.8-v${ONNXRUNTIME_VERSION}-more.deb
 
-# To install/remove the generated .deb package on a Debian-based system, use:
+# To install the generated .deb package on a Debian-based system, use:
 # sudo apt-get install ./onnxruntime-linux-x64-cuda12.8-v${ONNXRUNTIME_VERSION}-more.deb
+# OR
+# sudo dpkg -i onnxruntime-linux-x64-cuda12.8-v1.24.2-more.deb
+# sudo apt-get -f install
+
+# To uninstall the package:
 # sudo apt-get remove onnxruntime-cuda
