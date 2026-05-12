@@ -7,6 +7,7 @@
 ARG BASE_IMG=nvidia/cuda:12.8.1-cudnn-devel-ubuntu20.04
 FROM ${BASE_IMG}
 ARG BUILDARCH
+ARG ONNXRUNTIME_VERSION=1.24.2
 
 # necessary to prevent interactivity in apt commands
 ARG DEBIAN_FRONTEND=noninteractive
@@ -122,7 +123,7 @@ RUN . /etc/os-release && \
     if [ "$VERSION_ID" = "20.04" ]; then PYTHON=python3.10; else PYTHON=python3; fi && \
     $PYTHON -m pip install psutil
 
-# Build ONNX Runtime v1.24.2 from source with CUDA support for Blackwell architecture (50-series or SM 12.0)
+# Build ONNX Runtime from source with CUDA support for Blackwell architecture (50-series or SM 12.0)
 # IMPORTANT: SM_101 is for Jetson Thor, in Cuda 12.8. But it was later changed to SM_110 in Cuda 13.0
 ENV CUDA_ARCHS="50-real;\
 52-real;\
@@ -143,7 +144,6 @@ ENV CUDA_ARCHS="50-real;\
 120-real;\
 120-virtual"
 # ENV CUDA_ARCHS="120-real"
-ENV ONNXRUNTIME_VERSION=1.24.2
 
 RUN . /etc/os-release && \
     if [ "$VERSION_ID" = "20.04" ]; then PYTHON=python3.10; else PYTHON=python3; fi && \
@@ -177,13 +177,52 @@ RUN . /etc/os-release && \
         "CMAKE_CXX_FLAGS=-B/opt/binutils-2.40/bin/" \
         "CMAKE_ASM_FLAGS=-B/opt/binutils-2.40/bin/" \
         "CMAKE_CUDA_FLAGS=-Xcompiler -B/opt/binutils-2.40/bin/" \
-    --allow_running_as_root && \
-    cd /onnxruntime/build/Release
-    #  && \
-    # cmake --install . && \
-    # ldconfig && \
-    # rm -rf /onnxruntime
+    --allow_running_as_root
 
-# TODO: We can create .DEB and .TAR.GZ packages either here, or as part of the previous build step.
-# At the moment, we are creating .DEB pacakge using a seperate bash script (create_onnxruntime_deb.sh)
-# We can modify this later
+# ============================================================================
+# NEW LAYER: Create .deb package from built artifacts (preserves build layers)
+# ============================================================================
+
+RUN set -ex && \
+    mkdir -p /tmp/deb-pkg/usr/local && \
+    mkdir -p /tmp/deb-pkg/DEBIAN && \
+    cd /onnxruntime/build/Release && \
+    cmake --install . --prefix /tmp/deb-pkg/usr/local && \
+    cat > /tmp/deb-pkg/DEBIAN/control << EOF
+Package: onnxruntime-cuda
+Version: ${ONNXRUNTIME_VERSION}
+Section: devel
+Priority: optional
+Architecture: amd64
+Maintainer: ahmed.affraz@more.ai
+Description: ONNX Runtime C++ shared library with CUDA 12.8 support. Built using Docker image nvidia/cuda:12.8.1-cudnn-devel-ubuntu20.04.
+EOF
+
+RUN cat > /tmp/deb-pkg/DEBIAN/postinst << 'SCRIPTEOF'
+#!/bin/sh
+set -e
+
+ldconfig
+
+exit 0
+SCRIPTEOF
+RUN chmod 755 /tmp/deb-pkg/DEBIAN/postinst
+
+RUN cat > /tmp/deb-pkg/DEBIAN/postrm << 'SCRIPTEOF'
+#!/bin/sh
+set -e
+
+case "$1" in
+	remove|purge)
+		ldconfig
+		;;
+esac
+
+exit 0
+SCRIPTEOF
+RUN chmod 755 /tmp/deb-pkg/DEBIAN/postrm
+
+RUN cat /tmp/deb-pkg/DEBIAN/control && \
+    mkdir -p /deb-output && \
+    dpkg-deb --build /tmp/deb-pkg /deb-output/onnxruntime-linux-x64-cuda12.8-v${ONNXRUNTIME_VERSION}-more.deb && \
+    ls -lh /deb-output/*.deb
