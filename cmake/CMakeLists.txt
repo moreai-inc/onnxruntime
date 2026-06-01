@@ -5,10 +5,32 @@
 # Minimum CMake required
 cmake_minimum_required(VERSION 3.28)
 
+# 1. Read the custom version string
+include(${CMAKE_CURRENT_SOURCE_DIR}/version_number.cmake)
+
+# 2. Extract base version (1.24.2)
+string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" ORT_BASE_VERSION "${VERSION_NUMBER}")
+
+# 3. Extract the build/tweak number (the '1' from '+more.1')
+string(REGEX MATCH "\\+more\\.([0-9]+)$" ORT_TWEAK_MATCH "${VERSION_NUMBER}")
+set(ORT_TWEAK_VERSION ${CMAKE_MATCH_1})
+
+# 4. Construct CMake-compatible version (1.24.2.1)
+set(CMAKE_COMPATIBLE_VERSION "${ORT_BASE_VERSION}.${ORT_TWEAK_VERSION}")
+
+# 6. Generate the version.h header for C++ access
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/version.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/version.h
+    @ONLY
+)
+# Ensure the generated folder is in the include path
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/generated)
+
 # Don't let cmake set a default value for CMAKE_CUDA_ARCHITECTURES
 cmake_policy(SET CMP0104 OLD)
 # Project
-project(onnxruntime C CXX ASM)
+project(onnxruntime VERSION ${CMAKE_COMPATIBLE_VERSION} LANGUAGES C CXX ASM)
 
 # Disable fast-math for Intel oneAPI compiler
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "IntelLLVM")
@@ -1837,6 +1859,9 @@ else()
 
   string(APPEND PROJECT_CONFIG_CONTENT
         "include(\"\${CMAKE_CURRENT_LIST_DIR}/${PROJECT_NAME}Targets.cmake\")\n")
+  string(APPEND PROJECT_CONFIG_CONTENT
+        "set(onnxruntime_VERSION \"${CMAKE_COMPATIBLE_VERSION}\")\n"
+        "set(onnxruntime_VERSION_FULL \"${VERSION_NUMBER}\")\n")
 
 
   file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/PROJECT_CONFIG_FILE" ${PROJECT_CONFIG_CONTENT})
@@ -1849,10 +1874,17 @@ else()
     "${CMAKE_CURRENT_BINARY_DIR}/PROJECT_CONFIG_FILE" ${PROJECT_NAME}Config.cmake
     INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
 
+  # write_basic_package_version_file(
+  #   "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+  #   VERSION ${ORT_VERSION}
+  #   COMPATIBILITY SameMajorVersion)
+
+  # This creates onnxruntimeConfigVersion.cmake
   write_basic_package_version_file(
-    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-    VERSION ${ORT_VERSION}
-    COMPATIBILITY SameMajorVersion)
+    "${CMAKE_CURRENT_BINARY_DIR}/onnxruntimeConfigVersion.cmake"
+    VERSION ${CMAKE_COMPATIBLE_VERSION}
+    COMPATIBILITY AnyNewerVersion
+  )
 
   install(
     FILES
@@ -1881,3 +1913,10 @@ endif()
 if(TARGET onnxruntime_providers)
   include("${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime_providers_pch.cmake")
 endif()
+
+# Set the explicit package version BEFORE including CPack
+set(CPACK_PACKAGE_VERSION "${VERSION_NUMBER}")
+set(CPACK_DEBIAN_PACKAGE_VERSION "${VERSION_NUMBER}-1") # e.g., 1.24.2+more.1-1
+
+# Standard CPack include
+include(CPack)

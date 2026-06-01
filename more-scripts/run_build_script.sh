@@ -6,7 +6,8 @@ set -euo pipefail
 
 # Script configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ONNXRUNTIME_VERSION="1.24.2"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+ONNXRUNTIME_VERSION=$(grep -oP 'set\(VERSION_NUMBER\s+"\K[^"]+' "${REPO_ROOT}/cmake/version_number.cmake")
 OUTPUT_DIR="./onnxruntime-build-output"
 DOCKERFILE_PATH="${SCRIPT_DIR}/Dockerfile"
 
@@ -68,20 +69,25 @@ echo "Log file:           $LOG_FILE"
 echo "=========================================="
 echo ""
 
+# Ensure submodules are initialized before copying into Docker image
+echo "Initializing git submodules..."
+git -C "$REPO_ROOT" submodule update --init --recursive
+
 # Build Docker image with logging
 echo "Building Docker image with ONNX Runtime v${ONNXRUNTIME_VERSION}..."
 echo "Log output: $LOG_FILE"
 echo ""
 
-# Generate unique image tag based on version
-IMAGE_TAG="more-onnxruntime:v${ONNXRUNTIME_VERSION}"
+# Generate unique image tag based on version (Docker tags don't allow '+')
+IMAGE_TAG="onnxruntime:v${ONNXRUNTIME_VERSION//+/-}"
+echo "Using Docker image tag: $IMAGE_TAG"
 
 docker build \
     --build-arg ONNXRUNTIME_VERSION="${ONNXRUNTIME_VERSION}" \
     --progress=plain \
     -t "$IMAGE_TAG" \
     -f "$DOCKERFILE_PATH" \
-    "$SCRIPT_DIR" 2>&1 | tee "$LOG_FILE"
+    "$REPO_ROOT" 2>&1 | tee "$LOG_FILE"
 
 BUILD_STATUS=${PIPESTATUS[0]}
 

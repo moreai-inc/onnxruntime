@@ -145,9 +145,11 @@ ENV CUDA_ARCHS="50-real;\
 120-virtual"
 # ENV CUDA_ARCHS="120-real"
 
+# Copy local fork into the image
+COPY . /onnxruntime
+
 RUN . /etc/os-release && \
     if [ "$VERSION_ID" = "20.04" ]; then PYTHON=python3.10; else PYTHON=python3; fi && \
-    git clone --recursive --branch "v${ONNXRUNTIME_VERSION}" https://github.com/microsoft/onnxruntime.git /onnxruntime && \
     cd /onnxruntime && \
     $PYTHON /onnxruntime/tools/ci_build/build.py \
     --build_dir build \
@@ -224,5 +226,5 @@ RUN chmod 755 /tmp/deb-pkg/DEBIAN/postrm
 
 RUN cat /tmp/deb-pkg/DEBIAN/control && \
     mkdir -p /deb-output && \
-    dpkg-deb --build /tmp/deb-pkg /deb-output/onnxruntime-linux-x64-cuda12.8-v${ONNXRUNTIME_VERSION}-more.deb && \
+    dpkg-deb --build /tmp/deb-pkg /deb-output/onnxruntime-linux-x64-cuda12.8-v${ONNXRUNTIME_VERSION}.deb && \
     ls -lh /deb-output/*.deb

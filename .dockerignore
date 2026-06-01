@@ -1,4 +1,8 @@
 .git
 .gitignore
 .gitattributes
+build/
+more-scripts/onnxruntime-build-output/
+**/__pycache__/
+**/*.egg-info/
 
