@@ -123,6 +123,10 @@ RUN . /etc/os-release && \
     if [ "$VERSION_ID" = "20.04" ]; then PYTHON=python3.10; else PYTHON=python3; fi && \
     $PYTHON -m pip install psutil
 
+RUN apt-get update && apt-get install -y \
+    dpkg-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Build ONNX Runtime from source with CUDA support for Blackwell architecture (50-series or SM 12.0)
 # IMPORTANT: SM_101 is for Jetson Thor, in Cuda 12.8. But it was later changed to SM_110 in Cuda 13.0
 ENV CUDA_ARCHS="50-real;\
@@ -182,49 +186,11 @@ RUN . /etc/os-release && \
     --allow_running_as_root
 
 # ============================================================================
-# NEW LAYER: Create .deb package from built artifacts (preserves build layers)
+# NEW LAYER: Create .deb package via CPack (preserves build layers above)
 # ============================================================================
 
-RUN set -ex && \
-    mkdir -p /tmp/deb-pkg/usr/local && \
-    mkdir -p /tmp/deb-pkg/DEBIAN && \
+RUN mkdir -p /deb-output && \
     cd /onnxruntime/build/Release && \
-    cmake --install . --prefix /tmp/deb-pkg/usr/local && \
-    cat > /tmp/deb-pkg/DEBIAN/control << EOF
-Package: onnxruntime-cuda
-Version: ${ONNXRUNTIME_VERSION}
-Section: devel
-Priority: optional
-Architecture: amd64
-Maintainer: ahmed.affraz@more.ai
-Description: ONNX Runtime C++ shared library with CUDA 12.8 support. Built using Docker image nvidia/cuda:12.8.1-cudnn-devel-ubuntu20.04.
-EOF
-
-RUN cat > /tmp/deb-pkg/DEBIAN/postinst << 'SCRIPTEOF'
-#!/bin/sh
-set -e
-
-ldconfig
-
-exit 0
-SCRIPTEOF
-RUN chmod 755 /tmp/deb-pkg/DEBIAN/postinst
-
-RUN cat > /tmp/deb-pkg/DEBIAN/postrm << 'SCRIPTEOF'
-#!/bin/sh
-set -e
-
-case "$1" in
-	remove|purge)
-		ldconfig
-		;;
-esac
-
-exit 0
-SCRIPTEOF
-RUN chmod 755 /tmp/deb-pkg/DEBIAN/postrm
-
-RUN cat /tmp/deb-pkg/DEBIAN/control && \
-    mkdir -p /deb-output && \
-    dpkg-deb --build /tmp/deb-pkg /deb-output/onnxruntime-linux-x64-cuda12.8-v${ONNXRUNTIME_VERSION}.deb && \
+    cpack -G DEB && \
+    mv *.deb /deb-output/ && \
     ls -lh /deb-output/*.deb

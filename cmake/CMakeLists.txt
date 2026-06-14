@@ -1914,9 +1914,25 @@ if(TARGET onnxruntime_providers)
   include("${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime_providers_pch.cmake")
 endif()
 
-# Set the explicit package version BEFORE including CPack
+# CPack configuration — run `cpack -G DEB` in the build dir after cmake --build
+set(CPACK_PACKAGE_NAME "onnxruntime-cuda")
+set(CPACK_PACKAGE_CONTACT "ahmed.affraz@more.ai")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "ahmed.affraz@more.ai")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
+    "ONNX Runtime C++ shared library with CUDA 12.8 support")
 set(CPACK_PACKAGE_VERSION "${VERSION_NUMBER}")
 set(CPACK_DEBIAN_PACKAGE_VERSION "${VERSION_NUMBER}-1") # e.g., 1.24.2+more.1-1
+set(CPACK_PACKAGE_FILE_NAME "onnxruntime-linux-x64-cuda12.8-v${VERSION_NUMBER}")
+# Let dpkg-shlibdeps auto-compute the Depends: line from linked shared libs
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_STRIP_FILES ON)
 
-# Standard CPack include
+# Write postinst/postrm into the build dir so CPack can include them
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/postinst" "#!/bin/sh\nset -e\nldconfig\nexit 0\n")
+file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/postrm"
+    "#!/bin/sh\nset -e\ncase \"\$1\" in\n\tremove|purge)\n\t\tldconfig\n\t\t;;\nesac\nexit 0\n")
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
+    "${CMAKE_CURRENT_BINARY_DIR}/postinst"
+    "${CMAKE_CURRENT_BINARY_DIR}/postrm")
+
 include(CPack)
