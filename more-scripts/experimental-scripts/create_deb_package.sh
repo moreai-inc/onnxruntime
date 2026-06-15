@@ -22,7 +22,6 @@ Version: ${ONNXRUNTIME_VERSION}
 Section: devel
 Priority: optional
 Architecture: amd64
-Maintainer: ahmed.affraz@more.ai
 Description: ONNX Runtime C++ shared library with CUDA 12.8 support. Built using Docker image nvidia/cuda:12.8.1-cudnn-devel-ubuntu20.04.
 EOF
 

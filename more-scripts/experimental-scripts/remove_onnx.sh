@@ -2,7 +2,7 @@
 
 # -------------------------------------------
 # This script removes the ONNX Runtime C++ shared library and related files from the system.
-# Use this to remove Onnx runtime from the moresight Docker images (if needed)
+# Use this to remove Onnx runtime from a Docker image (if needed)
 # -------------------------------------------
 
 sudo rm -f /usr/local/lib/libonnxruntime*.so*

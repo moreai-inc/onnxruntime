@@ -1916,8 +1916,6 @@ endif()
 
 # CPack configuration — run `cpack -G DEB` in the build dir after cmake --build
 set(CPACK_PACKAGE_NAME "onnxruntime-cuda")
-set(CPACK_PACKAGE_CONTACT "ahmed.affraz@more.ai")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "ahmed.affraz@more.ai")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
     "ONNX Runtime C++ shared library with CUDA 12.8 support")
 set(CPACK_PACKAGE_VERSION "${VERSION_NUMBER}")
