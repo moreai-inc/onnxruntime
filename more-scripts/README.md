@@ -20,7 +20,7 @@ Current `Dockerfile` is built on Docker image: `nvidia/cuda:12.8.1-cudnn-devel-u
 
 ### Extras
 
-In `more-scripts/experimental-scripts`, there are some experimentals scripts, used for the trial and error development e.g. on how to remove the previous installation of onnxruntime from the moresight Docker images, and verify its removal.
+In `more-scripts/experimental-scripts`, there are some experimental scripts, used for the trial and error development e.g. on how to remove the previous installation of onnxruntime from the Docker images, and verify its removal.
 
 But they are not needed for the production version. The script `run_build_script.sh` is sufficient for building it.
 
