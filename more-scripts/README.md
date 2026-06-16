@@ -27,3 +27,15 @@ But they are not needed for the production version. The script `run_build_script
 ### Tips:
 
 If you want to experiment with Onnx builds, you can speed up the build process by compiling for just one (or very few) Cuda compute architechtures (e.g. `ENV CUDA_ARCHS="120-real"`), and disabling `--enable_lto` by comenting it out.
+
+---
+
+### Installation
+
+```bash
+# To install the generated .deb package
+sudo apt-get install ./onnxruntime-linux-x64-cuda12.8-v1.24.2+more.1.deb
+
+# To uninstall the package:
+sudo apt-get remove onnxruntime-cuda
+```

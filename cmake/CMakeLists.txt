@@ -1874,11 +1874,6 @@ else()
     "${CMAKE_CURRENT_BINARY_DIR}/PROJECT_CONFIG_FILE" ${PROJECT_NAME}Config.cmake
     INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}")
 
-  # write_basic_package_version_file(
-  #   "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-  #   VERSION ${ORT_VERSION}
-  #   COMPATIBILITY SameMajorVersion)
-
   # This creates onnxruntimeConfigVersion.cmake
   write_basic_package_version_file(
     "${CMAKE_CURRENT_BINARY_DIR}/onnxruntimeConfigVersion.cmake"

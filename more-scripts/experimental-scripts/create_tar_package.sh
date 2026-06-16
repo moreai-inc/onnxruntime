@@ -13,11 +13,3 @@ cmake --install . --prefix /tmp/onnxruntime-pkg
 mkdir -p /output
 cd /tmp/onnxruntime-pkg
 tar -czvf /output/onnxruntime-linux-x64-cuda12.8-v${ONNXRUNTIME_VERSION}.tar.gz .
-# rm -rf /onnxruntime /tmp/onnxruntime-pkg
-
-# ------------------------------------------
-# Inside the Dockerfile
-
-# OR For C++ Tarball:
-# COPY --from=builder /output/*.tar.gz /tmp/
-# RUN tar -xzvf /tmp/*.tar.gz -C /usr/local/ && ldconfig
