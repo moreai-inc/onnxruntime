@@ -1912,14 +1912,12 @@ endif()
 # CPack configuration — run `cpack -G DEB` in the build dir after cmake --build
 set(CPACK_PACKAGE_NAME "onnxruntime-cuda")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
-    "ONNX Runtime C++ shared library with CUDA 12.8 support")
+    "ONNX Runtime C++ shared library with CUDA 12.9 support")
 set(CPACK_PACKAGE_VERSION "${VERSION_NUMBER}")
 set(CPACK_DEBIAN_PACKAGE_VERSION "${VERSION_NUMBER}-1") # e.g., 1.24.2+more.1-1
-set(CPACK_PACKAGE_FILE_NAME "onnxruntime-linux-x64-cuda12.8-v${VERSION_NUMBER}")
+set(CPACK_PACKAGE_FILE_NAME "onnxruntime-linux-x64-cuda12.9.2-v${VERSION_NUMBER}")
 set(CPACK_PACKAGE_CONTACT "more.ai")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "more.ai")
-# Let dpkg-shlibdeps auto-compute the Depends: line from linked shared libs
-set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 set(CPACK_STRIP_FILES ON)
 
 # Write postinst/postrm into the build dir so CPack can include them

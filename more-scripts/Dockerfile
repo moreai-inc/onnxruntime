@@ -1,10 +1,10 @@
 # Take Image Name from Build Command
 # Accommodate for Build Architecture
 # For Example:
-#   amd64: nvidia/cuda:12.8.1-devel-ubuntu22.04 <--- Default
+#   amd64: nvidia/cuda:12.9.2-devel-ubuntu22.04 <--- Default
 #   arm64: nvcr.io/nvidia/l4t-base:r36.2.0
 
-ARG BASE_IMG=nvidia/cuda:12.8.1-cudnn-devel-ubuntu20.04
+ARG BASE_IMG=nvidia/cuda:12.9.2-cudnn-devel-ubuntu20.04
 FROM ${BASE_IMG}
 ARG BUILDARCH
 ARG ONNXRUNTIME_VERSION=1.24.2
