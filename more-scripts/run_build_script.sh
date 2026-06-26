@@ -8,7 +8,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 ONNXRUNTIME_VERSION=$(grep -oP 'set\(VERSION_NUMBER\s+"\K[^"]+' "${REPO_ROOT}/cmake/version_number.cmake")
-OUTPUT_DIR="./onnxruntime-build-output/${ONNXRUNTIME_VERSION}"
+OUTPUT_DIR="./onnxruntime-build-output/${ONNXRUNTIME_VERSION}/$(date +%Y%m%d-%H%M%S)"
 DOCKERFILE_PATH="${SCRIPT_DIR}/Dockerfile"
 
 # Parse arguments

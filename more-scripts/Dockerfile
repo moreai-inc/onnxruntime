@@ -125,7 +125,34 @@ RUN . /etc/os-release && \
 
 RUN apt-get update && apt-get install -y \
     dpkg-dev \
+    unzip \
     && rm -rf /var/lib/apt/lists/*
+
+# Override CCCL headers and cmake configs to fix CCCL_PP_SPLICE_WITH bug (NVIDIA/cccl#4972)
+# affecting nvcc -arch=all builds with CUDA 12.9.x
+# Uses the *installation* archive (headers + CMake configs), NOT the source tree, so that both
+# nvcc AND find_package(CCCL) report the new version. Portable to x86_64 and aarch64.
+ENV CCCL_VERSION=3.3.3
+RUN set -ex; \
+    wget --progress=dot:mega -O /tmp/cccl.zip "https://github.com/NVIDIA/cccl/releases/download/v${CCCL_VERSION}/cccl-v${CCCL_VERSION}.zip"; \
+    unzip -q /tmp/cccl.zip -d /tmp/cccl; \
+    rm -rf /usr/local/cuda/include/thrust \
+           /usr/local/cuda/include/cub \
+           /usr/local/cuda/include/cuda \
+           /usr/local/cuda/include/nv; \
+    cp -r /tmp/cccl/cccl-v${CCCL_VERSION}/include/thrust /usr/local/cuda/include/; \
+    cp -r /tmp/cccl/cccl-v${CCCL_VERSION}/include/cub    /usr/local/cuda/include/; \
+    cp -r /tmp/cccl/cccl-v${CCCL_VERSION}/include/cuda   /usr/local/cuda/include/; \
+    cp -r /tmp/cccl/cccl-v${CCCL_VERSION}/include/nv     /usr/local/cuda/include/; \
+    rm -rf /usr/local/cuda/lib64/cmake/cccl \
+           /usr/local/cuda/lib64/cmake/cub \
+           /usr/local/cuda/lib64/cmake/libcudacxx \
+           /usr/local/cuda/lib64/cmake/thrust; \
+    cp -r /tmp/cccl/cccl-v${CCCL_VERSION}/lib/cmake/cccl       /usr/local/cuda/lib64/cmake/; \
+    cp -r /tmp/cccl/cccl-v${CCCL_VERSION}/lib/cmake/cub        /usr/local/cuda/lib64/cmake/; \
+    cp -r /tmp/cccl/cccl-v${CCCL_VERSION}/lib/cmake/libcudacxx /usr/local/cuda/lib64/cmake/; \
+    cp -r /tmp/cccl/cccl-v${CCCL_VERSION}/lib/cmake/thrust     /usr/local/cuda/lib64/cmake/; \
+    rm -rf /tmp/cccl.zip /tmp/cccl;
 
 # Build ONNX Runtime from source with CUDA support for Blackwell architecture (50-series or SM 12.0)
 # IMPORTANT: SM_101 is for Jetson Thor, in Cuda 12.8. But it was later changed to SM_110 in Cuda 13.0
@@ -164,7 +191,7 @@ RUN . /etc/os-release && \
     --skip_tests \
     --skip_submodule_sync \
     --use_cuda \
-    --cuda_version 12.8 \
+    --cuda_version 12.9 \
     --cuda_home /usr/local/cuda \
     --cudnn_home /usr/local/cuda \
     --cmake_extra_defines \
