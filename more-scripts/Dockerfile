@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # Take Image Name from Build Command
 # Accommodate for Build Architecture
 # For Example:
@@ -53,6 +54,7 @@ RUN apt-get update && apt-get install -y \
     gpg \
     lsb-release \
     ninja-build \
+    ccache \
     python3-pip \
     libcurl4-openssl-dev \
     && rm -rf /var/lib/apt/lists/*
@@ -91,7 +93,9 @@ RUN set -ex; \
     fi
 
 # Build Python 3.10 from source only on Ubuntu 20.04 (later versions have it in their repos)
-# --enable-optimizations makes the build slower but the resulting Python 10-20% faster
+# Note: --enable-optimizations (PGO) is intentionally omitted -- it runs the full CPython
+# test suite during the image build for a ~10-20% Python runtime gain that is irrelevant here,
+# since this interpreter only drives build.py; cmake/ninja/nvcc do the actual compiling.
 # 'altinstall' installs as 'python3.10', not overwriting the system 'python3'
 RUN . /etc/os-release && \
     if [ "$VERSION_ID" = "20.04" ]; then \
@@ -100,7 +104,7 @@ RUN . /etc/os-release && \
         wget --progress=dot:mega https://www.python.org/ftp/python/3.10.13/Python-3.10.13.tgz && \
         tar -xzf Python-3.10.13.tgz && \
         cd Python-3.10.13 && \
-        ./configure --quiet --enable-optimizations && \
+        ./configure --quiet && \
         make -s -j$(nproc) && \
         make -s altinstall > /dev/null && \
         cd /tmp && \
@@ -180,15 +184,21 @@ ENV CUDA_ARCHS="50-real;\
 # Copy local fork into the image
 COPY . /onnxruntime
 
-RUN . /etc/os-release && \
+# ccache config; the cache mount on the build step below persists it across builds
+ENV CCACHE_DIR=/ccache CCACHE_MAXSIZE=40G
+
+RUN --mount=type=cache,target=/ccache \
+    . /etc/os-release && \
     if [ "$VERSION_ID" = "20.04" ]; then PYTHON=python3.10; else PYTHON=python3; fi && \
     cd /onnxruntime && \
     $PYTHON /onnxruntime/tools/ci_build/build.py \
     --build_dir build \
     --config Release \
     --build_shared_lib \
-    --enable_lto \
-    --parallel 8 \
+    --parallel 12 \
+    --nvcc_threads 1 \
+    --cmake_generator Ninja \
+    --use_cache \
     --skip_tests \
     --skip_submodule_sync \
     --use_cuda \
@@ -200,6 +210,7 @@ RUN . /etc/os-release && \
         "CMAKE_DISABLE_FIND_PACKAGE_Flatbuffers=ON" \
         "CMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHS}" \
         "onnxruntime_USE_FPA_INTB_GEMM=OFF" \
+        "onnxruntime_BUILD_UNIT_TESTS=OFF" \
         "CMAKE_AR=/opt/binutils-2.40/bin/ar" \
         "CMAKE_RANLIB=/opt/binutils-2.40/bin/ranlib" \
         "CMAKE_LINKER=/opt/binutils-2.40/bin/ld" \

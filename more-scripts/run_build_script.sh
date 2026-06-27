@@ -8,7 +8,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 ONNXRUNTIME_VERSION=$(grep -oP 'set\(VERSION_NUMBER\s+"\K[^"]+' "${REPO_ROOT}/cmake/version_number.cmake")
-OUTPUT_DIR="./onnxruntime-build-output/${ONNXRUNTIME_VERSION}/$(date +%Y%m%d-%H%M%S)"
+# OUTPUT_DIR is computed after argument parsing so that --version is reflected in the path
+OUTPUT_DIR=""
+BUILD_TS="$(date +%Y%m%d-%H%M%S)"
 DOCKERFILE_PATH="${SCRIPT_DIR}/Dockerfile"
 
 # Parse arguments
@@ -26,8 +28,8 @@ while [[ $# -gt 0 ]]; do
             echo "Usage: $0 [OPTIONS]"
             echo ""
             echo "Options:"
-            echo "  --version VERSION        ONNX Runtime version to build (default: 1.24.2)"
-            echo "  --output-dir PATH        Output directory for .deb package (default: ./onnxruntime-build-output)"
+            echo "  --version VERSION        ONNX Runtime version to build (default: from cmake/version_number.cmake)"
+            echo "  --output-dir PATH        Output directory for .deb package (default: more-scripts/onnxruntime-build-output/<version>/<timestamp>)"
             echo "  --help                   Show this help message"
             echo ""
             echo "Examples:"
@@ -42,6 +44,11 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Default output dir (computed here so --version is reflected in the path).
+# Anchored to more-scripts/ so it matches the .dockerignore exclusion and stays
+# out of the Docker build context regardless of the current working directory.
+OUTPUT_DIR="${OUTPUT_DIR:-${SCRIPT_DIR}/onnxruntime-build-output/${ONNXRUNTIME_VERSION}/${BUILD_TS}}"
 
 # Validate Dockerfile exists
 if [ ! -f "$DOCKERFILE_PATH" ]; then
@@ -82,6 +89,9 @@ echo ""
 IMAGE_TAG="onnxruntime:v${ONNXRUNTIME_VERSION//+/-}"
 echo "Using Docker image tag: $IMAGE_TAG"
 
+# Enable BuildKit so the ccache --mount=type=cache in the Dockerfile works
+export DOCKER_BUILDKIT=1
+
 docker build \
     --build-arg ONNXRUNTIME_VERSION="${ONNXRUNTIME_VERSION}" \
     --progress=plain \
@@ -103,7 +113,7 @@ if [ $BUILD_STATUS -eq 0 ]; then
     docker run --rm \
         -v "${OUTPUT_DIR_ABS}:/output" \
         "$IMAGE_TAG" \
-        sh -c "cp /deb-output/*.deb /output/ && ls -lh /output/*.deb"
+        sh -c "cp /deb-output/*.deb /output/ && chown $(id -u):$(id -g) /output/*.deb && ls -lh /output/*.deb"
 
     EXTRACT_STATUS=$?
     if [ $EXTRACT_STATUS -ne 0 ]; then
