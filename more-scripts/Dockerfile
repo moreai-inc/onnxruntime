@@ -162,7 +162,8 @@ RUN . /etc/os-release && \
     --build_dir build \
     --config Release \
     --build_shared_lib \
-    --parallel 16 \
+    --enable_lto \
+    --parallel 10 \
     --nvcc_threads 1 \
     --cmake_generator Ninja \
     --skip_tests \
