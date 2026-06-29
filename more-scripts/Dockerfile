@@ -72,13 +72,12 @@ RUN set -ex;                                                                    
 
 # Update GCC only if the system version is older than 13
 RUN set -ex; \
+    apt-get update && apt-get install -y software-properties-common; \
+    # Get the version of the default gcc package available in repos
     SYS_GCC_VER=$(apt-cache policy gcc | grep Candidate | awk '{print $2}' | cut -d: -f2 | cut -d. -f1); SYS_GCC_VER=${SYS_GCC_VER:-0}; \
     if [ "$SYS_GCC_VER" -lt 13 ]; then \
         echo "System GCC is version $SYS_GCC_VER. Upgrading to GCC 13 via PPA..."; \
-        apt-get install -y gpg; \
-        apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1E9377A2BA9EF27F; \
-        echo "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu focal main" \
-            > /etc/apt/sources.list.d/ubuntu-toolchain-r.list; \
+        add-apt-repository -y ppa:ubuntu-toolchain-r/test; \
         apt-get update; \
         apt-get install -y gcc-13 g++-13; \
         update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 13;                                \
